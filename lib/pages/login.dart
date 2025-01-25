@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
-import '../database/local_db.dart';
+import '../database/auth.dart';
+//import '../database/cloud_db.dart';
 import '../models/user.dart';
 
-class Login extends StatelessWidget {
+class Login extends StatefulWidget {
   const Login({super.key});
 
   @override
+  State<Login> createState() => _LoginState();
+}
+
+class _LoginState extends State<Login> {
+  final _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
+  //final DatabaseService _databaseService = DatabaseService();
+  var emailController = TextEditingController();
+  var passwordController = TextEditingController();
+  String email = "";
+  String password = "";
+  String error = "";
+  @override
   Widget build(BuildContext context) {
     User user = User();
-    var usernameController = TextEditingController();
-    var passwordController = TextEditingController();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -42,40 +54,37 @@ class Login extends StatelessWidget {
                   border: Border.all(color: Colors.black,),
                   borderRadius: const BorderRadius.all(Radius.circular(10)),
                 ),
-                child: Center(
+                child: Form(
+                  key: _formKey,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children:[
                       const SizedBox(height: 60.0),
-                      TextField(
+                      TextFormField(
+                        controller: emailController,
                         decoration: const InputDecoration(
+                          hintText: "Enter an email",
                           filled: true,
                           fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black, width: 3.0),
-                          ),
-                          contentPadding: EdgeInsets.all(10),
-                          hintText: "Enter username", 
-                          labelText: "Username: "
                         ),
-                        controller: usernameController,
-                        style: const TextStyle(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.bold)
+                        validator: (val) => val!.isEmpty ? "Enter an email" : null,
+                        onChanged: (val) {
+                          email = val;
+                        },
                       ),
                       const SizedBox(height: 10.0),
-                      TextField(
+                      TextFormField(
                         obscureText: true,
+                        controller: passwordController,
                         decoration: const InputDecoration(
+                          hintText: "Enter a password",
                           filled: true,
                           fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black, width: 3.0),
-                          ),
-                          contentPadding: EdgeInsets.all(10),
-                          hintText: "Enter password", 
-                          labelText: "Password: "
                         ),
-                        controller: passwordController,
-                        style: const TextStyle(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.bold)
+                        validator: (val) => val!.length < 6 ? "Enter a password of at least 6 char" : null,
+                        onChanged: (val) {
+                          password = val;
+                        },
                       ),
                       const SizedBox(height: 10.0),
                       ElevatedButton(
@@ -84,50 +93,27 @@ class Login extends StatelessWidget {
                           foregroundColor: Colors.white,
                         ),
                         onPressed: () async {
-                          bool good = true;
-                          String msg = "";
-                          if (usernameController.text == "") {
-                            msg = "Please enter a username";
-                            good = false;
-                          }
-                          else if (passwordController.text == "") {
-                            msg = "Please enter a password";
-                            good = false;
-                          }
-                          else {
-                            List userMap = await LocalDatabase().searchByUsername(username: usernameController.text);
-                            if (userMap.isEmpty) {
-                              msg = "Invalid username";
-                              good = false;
-                            }
-                            else if (passwordController.text != userMap[0]["password"]) {
-                              msg = "Invalid password";
-                              good = false;
+                          if (_formKey.currentState!.validate()) {
+                            dynamic result = await _authService.loginWithEmailPassword(email, password);
+                            if (result == null) {
+                              setState(() {error= "Error logging in";});
                             }
                             else {
-                              user.setUsername(userMap[0]["username"]);
-                              user.setPassword(userMap[0]["password"]);
-                              user.setAge(userMap[0]["age"]);
-                              user.setHeight(userMap[0]["height"]);
-                              user.setWeight(userMap[0]["weight"]);
-                              user.setLocation(userMap[0]["location"]);
+                              //Map searchMap = await _databaseService.getUserInfo(email);
+                              //print(searchMap);
+                              user.setUsername(email);
+                              user.setPassword(password);
+                              user.setAge(0);
+                              user.setHeight(0.0);
+                              user.setWeight(0.0);
+                              user.setLocation("");
+                              setState(() {
+                                emailController.text = "";
+                                passwordController.text = "";
+                                error = "";
+                                Navigator.pushNamed(context, "/home", arguments: {"user": user});
+                              });
                             }
-                          }
-                          if (!good) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                msg,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                              backgroundColor: Colors.red,
-                            ));
-                          }
-                          else {
-                            await Navigator.pushNamed(
-                              context, 
-                              "/home",
-                              arguments: {"user": user}
-                            );
                           }
                         }, 
                         child: const Text("Log in")
@@ -136,21 +122,19 @@ class Login extends StatelessWidget {
                   )
                 ) 
               ),
-              const SizedBox(height: 20.0),
+              const SizedBox(height: 10.0),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green, 
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () async {
-                  await Navigator.pushNamed(
-                    context, 
-                    "/signup",
-                    arguments: {}
-                  );
+                  await Navigator.pushReplacementNamed(context, "/signup", arguments: {});
                 }, 
                 child: const Text("Not registered yet\n Please sign up"),
-              )
+              ),
+              const SizedBox(height: 10.0),
+              Text(error, style: const TextStyle(color: Colors.red, fontSize: 16),),
             ]
           )
         )

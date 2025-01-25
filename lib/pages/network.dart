@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
 import '../database/auth.dart';
+import '../models/user.dart';
 
-class Template extends StatefulWidget {
-  const Template({super.key});
+class Network extends StatefulWidget {
+  const Network({super.key});
 
   @override
-  State<Template> createState() => _TemplateState();
+  State<Network> createState() => _NetworkState();
 }
 
-class _TemplateState extends State<Template> {
+class _NetworkState extends State<Network> {
   final AuthService _authService = AuthService();
   @override
   Widget build(BuildContext context) {
+    Map userData = {};
+    userData = ModalRoute.of(context)!.settings.arguments as Map;
+    User user = userData["user"];
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.green,
-        title: const Text(
-          "Fitness Tracker Template View",
-          style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold)
+        title: Text(
+          "Network for ${user.getUsername()}",
+          style: const TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold)
         ),
         centerTitle: true,
       ),
@@ -44,7 +48,7 @@ class _TemplateState extends State<Template> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await _authService.logout(); 
-          await Navigator.pushReplacementNamed(context, "/");
+          Navigator.popUntil(context, ModalRoute.withName('/'));
         },
         backgroundColor: Colors.green,
         child: const Icon(Icons.logout_rounded)
